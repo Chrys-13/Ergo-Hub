@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and role information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "ambassador", "admin", "ot"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Ergonomic products available in the marketplace.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["kit", "chair"] },
+        "price": { "type": "number" },
+        "rentalPrice": { "type": "number" },
+        "description": { "type": "string" }
+      },
+      "required": ["id", "name", "type", "price"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Purchase or rental orders.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "productId": { "type": "string" },
+        "type": { "type": "string", "enum": ["buy", "rent"] },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "productId", "type", "createdAt"]
+    },
+    "AmbassadorApplication": {
+      "title": "Ambassador Application",
+      "description": "Applications for the Student Wellness Ambassador role.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "dormTerritory": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "applicationUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "dormTerritory", "status", "createdAt"]
+    },
+    "PainLog": {
+      "title": "Pain Log",
+      "description": "Student pain tracking and posture compliance.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "preVAS": { "type": "integer" },
+        "postVAS": { "type": "integer" },
+        "focusEnduranceMinutes": { "type": "integer" },
+        "lumbarAlignment": { "type": "boolean" },
+        "feetFlat": { "type": "boolean" },
+        "neckNeutrality": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "preVAS", "createdAt"]
+    },
+    "BestPractice": {
+      "title": "Best Practice",
+      "description": "OT-uploaded posture best practices.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "content", "authorId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles."
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Marketplace products."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders."
+    },
+    "/ambassador_applications/{appId}": {
+      "schema": "AmbassadorApplication",
+      "description": "Ambassador applications."
+    },
+    "/pain_logs/{logId}": {
+      "schema": "PainLog",
+      "description": "Student pain and posture logs."
+    },
+    "/best_practices/{practiceId}": {
+      "schema": "BestPractice",
+      "description": "OT best practices."
+    }
+  }
+}

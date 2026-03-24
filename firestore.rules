@@ -1,0 +1,125 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields: uid, email, displayName, role, createdAt
+    //
+    // Collection: products
+    // Fields: id, name, type, price, rentalPrice, description
+    //
+    // Collection: orders
+    // Fields: id, userId, productId, type, status, createdAt
+    //
+    // Collection: ambassador_applications
+    // Fields: id, userId, dormTerritory, status, applicationUrl, createdAt
+    //
+    // Collection: pain_logs
+    // Fields: id, userId, preVAS, postVAS, focusEnduranceMinutes, lumbarAlignment, feetFlat, neckNeutrality, createdAt
+    //
+    // Collection: best_practices
+    // Fields: id, title, content, authorId, createdAt
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "chrysolite77ci@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isOT() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ot';
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'role', 'createdAt']) &&
+             data.uid is string && data.email is string &&
+             data.role in ['student', 'ambassador', 'admin', 'ot'];
+    }
+
+    function isValidProduct(data) {
+      return hasOnlyAllowedFields(['id', 'name', 'type', 'price', 'rentalPrice', 'description']) &&
+             data.name is string && data.type in ['kit', 'chair'] && data.price is number;
+    }
+
+    function isValidOrder(data) {
+      return hasOnlyAllowedFields(['id', 'userId', 'productId', 'type', 'status', 'createdAt']) &&
+             data.userId is string && data.productId is string && data.type in ['buy', 'rent'];
+    }
+
+    function isValidAmbassadorApp(data) {
+      return hasOnlyAllowedFields(['id', 'userId', 'dormTerritory', 'status', 'applicationUrl', 'createdAt']) &&
+             data.userId is string && data.dormTerritory is string && data.status in ['pending', 'approved', 'rejected'];
+    }
+
+    function isValidPainLog(data) {
+      return hasOnlyAllowedFields(['id', 'userId', 'preVAS', 'postVAS', 'focusEnduranceMinutes', 'lumbarAlignment', 'feetFlat', 'neckNeutrality', 'createdAt']) &&
+             data.userId is string && data.preVAS is int && data.preVAS >= 0 && data.preVAS <= 10;
+    }
+
+    function isValidBestPractice(data) {
+      return hasOnlyAllowedFields(['id', 'title', 'content', 'authorId', 'createdAt']) &&
+             data.title is string && data.content is string && data.authorId is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidProduct(request.resource.data);
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.userId) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId) && isValidOrder(request.resource.data);
+      allow update: if isAdmin() && isValidOrder(request.resource.data);
+    }
+
+    match /ambassador_applications/{appId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.userId) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId) && isValidAmbassadorApp(request.resource.data);
+      allow update: if isAdmin() && isValidAmbassadorApp(request.resource.data);
+    }
+
+    match /pain_logs/{logId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.userId) || isAdmin() || isOT());
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId) && isValidPainLog(request.resource.data);
+      allow update: if isAuthenticated() && isOwner(resource.data.userId) && isValidPainLog(request.resource.data);
+    }
+
+    match /best_practices/{practiceId} {
+      allow read: if true;
+      allow write: if (isAdmin() || isOT()) && isValidBestPractice(request.resource.data);
+    }
+  }
+}

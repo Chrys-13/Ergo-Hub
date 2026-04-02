@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Upload, MapPin, DollarSign, Briefcase, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
 import { useAuth } from './FirebaseProvider';
 import { sendEmail } from '../lib/email';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 
@@ -30,6 +30,8 @@ export const AmbassadorPortal: React.FC = () => {
       if (!snapshot.empty) {
         setApplication(snapshot.docs[0].data());
       }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'ambassador_applications');
     });
     return () => unsubscribe();
   }, [user]);
@@ -99,7 +101,7 @@ export const AmbassadorPortal: React.FC = () => {
       setIsApplying(false);
       alert('Application submitted successfully! A confirmation email has been sent.');
     } catch (error) {
-      console.error('Application failed:', error);
+      handleFirestoreError(error, OperationType.CREATE, 'ambassador_applications');
     }
   };
 

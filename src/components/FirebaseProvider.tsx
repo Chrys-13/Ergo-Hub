@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { doc, getDoc, setDoc, onSnapshot, getDocFromServer } from 'firebase/firestore';
+import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -42,6 +42,18 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const isPremium = profile?.isPremium === true;
 
   useEffect(() => {
+    // Connection test
+    const testConnection = async () => {
+      try {
+        await getDocFromServer(doc(db, '_connection_test_', 'ping'));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration. The client is offline.");
+        }
+      }
+    };
+    testConnection();
+
     let unsubscribeProfile: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
@@ -56,16 +68,20 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const userDocRef = doc(db, 'users', currentUser.uid);
         
         // Initial check and creation if missing
-        const userDoc = await getDoc(userDocRef);
-        if (!userDoc.exists()) {
-          const newProfile = {
-            uid: currentUser.uid,
-            email: currentUser.email,
-            displayName: currentUser.displayName,
-            role: 'student',
-            createdAt: new Date().toISOString(),
-          };
-          await setDoc(userDocRef, newProfile);
+        try {
+          const userDoc = await getDoc(userDocRef);
+          if (!userDoc.exists()) {
+            const newProfile = {
+              uid: currentUser.uid,
+              email: currentUser.email,
+              displayName: currentUser.displayName,
+              role: 'student',
+              createdAt: new Date().toISOString(),
+            };
+            await setDoc(userDocRef, newProfile);
+          }
+        } catch (error) {
+          handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
         }
 
         // Listen for real-time updates
@@ -76,7 +92,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           setLoading(false);
           setIsAuthReady(true);
         }, (error) => {
-          console.error("Profile sync error:", error);
+          handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
           setLoading(false);
           setIsAuthReady(true);
         });

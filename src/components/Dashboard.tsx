@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from './FirebaseProvider';
 import { sendEmail } from '../lib/email';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, query, where, onSnapshot, orderBy, limit, QueryConstraint, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 import { AnimatePresence } from 'motion/react';
@@ -25,6 +25,9 @@ const AdminPanel: React.FC = () => {
     const q = query(collection(db, 'users'), limit(50));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'users');
       setLoading(false);
     });
     return () => unsubscribe();
@@ -58,8 +61,7 @@ const AdminPanel: React.FC = () => {
 
       alert('Role updated successfully! A notification email has been sent.');
     } catch (error) {
-      console.error('Update failed:', error);
-      alert('Failed to update role. Check permissions.');
+      handleFirestoreError(error, OperationType.UPDATE, `users/${userId}`);
     }
   };
 
@@ -184,6 +186,8 @@ export const Dashboard: React.FC = () => {
         };
       }).reverse();
       setLogs(processedLogs);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'pain_logs');
     });
     return () => unsubscribe();
   }, [user, filterRange, customStart, customEnd]);
@@ -205,7 +209,7 @@ export const Dashboard: React.FC = () => {
       setShowLogForm(false);
       alert('Log saved!');
     } catch (error) {
-      console.error('Log failed:', error);
+      handleFirestoreError(error, OperationType.CREATE, 'pain_logs');
     }
   };
 

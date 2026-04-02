@@ -6,28 +6,71 @@ service cloud.firestore {
     // ===============================================================
     //
     // Collection: users
-    // Fields: uid, email, displayName, role, createdAt
+    // Document ID: {userId} (matches Firebase Auth UID)
+    // Fields:
+    //   - uid: string (required, immutable) - User's unique ID
+    //   - email: string (required, immutable) - User's email address
+    //   - displayName: string (required) - User's full name
+    //   - role: string (required) - 'student', 'ambassador', 'ot', 'admin'
+    //   - university: string (optional) - User's university
+    //   - major: string (optional) - User's major
+    //   - bio: string (optional) - User's bio
+    //   - isPremium: bool (optional) - Premium status
+    //   - premiumSince: string (optional) - ISO date
+    //   - createdAt: string (required, immutable) - ISO date
+    //   - updatedAt: string (optional) - ISO date
     //
     // Collection: products
-    // Fields: id, name, type, price, rentalPrice, description
+    // Document ID: {productId}
+    // Fields:
+    //   - name: string (required)
+    //   - price: number (required)
+    //   - rentPrice: number (optional)
+    //   - description: string (required)
+    //   - image: string (required)
+    //   - category: string (required)
+    //   - isPremiumOnly: bool (optional)
     //
     // Collection: orders
-    // Fields: id, userId, productId, type, status, createdAt
-    //
-    // Collection: ambassador_applications
-    // Fields: id, userId, dormTerritory, status, applicationUrl, createdAt
+    // Document ID: {orderId}
+    // Fields:
+    //   - userId: string (required, immutable)
+    //   - productId: string (required, immutable)
+    //   - productName: string (required)
+    //   - type: string (required) - 'buy', 'rent'
+    //   - price: number (required)
+    //   - status: string (required) - 'pending', 'completed'
+    //   - createdAt: string (required, immutable)
     //
     // Collection: pain_logs
-    // Fields: id, userId, preVAS, postVAS, focusEnduranceMinutes, lumbarAlignment, feetFlat, neckNeutrality, createdAt
+    // Document ID: {logId}
+    // Fields:
+    //   - userId: string (required, immutable)
+    //   - preVAS: number (required)
+    //   - postVAS: number (required)
+    //   - studyHours: number (required)
+    //   - notes: string (optional)
+    //   - createdAt: string (required, immutable)
     //
-    // Collection: best_practices
-    // Fields: id, title, content, authorId, createdAt
+    // Collection: ambassador_applications
+    // Document ID: {applicationId}
+    // Fields:
+    //   - userId: string (required, immutable)
+    //   - name: string (required)
+    //   - email: string (required)
+    //   - university: string (required)
+    //   - major: string (required)
+    //   - year: string (required)
+    //   - motivation: string (required)
+    //   - status: string (required) - 'pending', 'approved', 'rejected'
+    //   - createdAt: string (required, immutable)
     //
     // ===============================================================
 
     // ===============================================================
     // Helper Functions
     // ===============================================================
+
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -37,51 +80,74 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && 
+      return isAuthenticated() &&
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-         (request.auth.token.email == "chrysolite77ci@gmail.com" && request.auth.token.email_verified == true));
+          (request.auth.token.email == "chrysolite77ci@gmail.com" && request.auth.token.email_verified == true));
     }
 
     function isOT() {
       return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ot';
     }
 
-    function hasOnlyAllowedFields(fields) {
-      return request.resource.data.keys().hasOnly(fields);
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
     }
 
     // ===============================================================
     // Domain Validators
     // ===============================================================
-    function isValidUser(data) {
-      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'role', 'createdAt']) &&
-             data.uid is string && data.email is string &&
-             data.role in ['student', 'ambassador', 'admin', 'ot'];
-    }
 
-    function isValidProduct(data) {
-      return hasOnlyAllowedFields(['id', 'name', 'type', 'price', 'rentalPrice', 'description']) &&
-             data.name is string && data.type in ['kit', 'chair'] && data.price is number;
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'role', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.email == request.auth.token.email &&
+             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() < 100 &&
+             data.role in ['student', 'ambassador', 'ot', 'admin'] &&
+             isValidDateString(data.createdAt) &&
+             (!('university' in data) || (data.university is string && data.university.size() < 100)) &&
+             (!('major' in data) || (data.major is string && data.major.size() < 100)) &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() < 500)) &&
+             (!('isPremium' in data) || data.isPremium is bool) &&
+             (!('premiumSince' in data) || isValidDateString(data.premiumSince)) &&
+             (!('updatedAt' in data) || isValidDateString(data.updatedAt));
     }
 
     function isValidOrder(data) {
-      return hasOnlyAllowedFields(['id', 'userId', 'productId', 'type', 'status', 'createdAt']) &&
-             data.userId is string && data.productId is string && data.type in ['buy', 'rent'];
-    }
-
-    function isValidAmbassadorApp(data) {
-      return hasOnlyAllowedFields(['id', 'userId', 'dormTerritory', 'status', 'applicationUrl', 'createdAt']) &&
-             data.userId is string && data.dormTerritory is string && data.status in ['pending', 'approved', 'rejected'];
+      return data.keys().hasAll(['userId', 'productId', 'productName', 'type', 'price', 'status', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.productId is string && data.productId.size() < 100 &&
+             data.productName is string && data.productName.size() < 100 &&
+             data.type in ['buy', 'rent'] &&
+             data.price is number && data.price >= 0 &&
+             data.status in ['pending', 'completed'] &&
+             isValidDateString(data.createdAt);
     }
 
     function isValidPainLog(data) {
-      return hasOnlyAllowedFields(['id', 'userId', 'preVAS', 'postVAS', 'focusEnduranceMinutes', 'lumbarAlignment', 'feetFlat', 'neckNeutrality', 'createdAt']) &&
-             data.userId is string && data.preVAS is int && data.preVAS >= 0 && data.preVAS <= 10;
+      return data.keys().hasAll(['userId', 'preVAS', 'postVAS', 'studyHours', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.preVAS is number && data.preVAS >= 0 && data.preVAS <= 10 &&
+             data.postVAS is number && data.postVAS >= 0 && data.postVAS <= 10 &&
+             data.studyHours is number && data.studyHours >= 0 && data.studyHours <= 24 &&
+             isValidDateString(data.createdAt) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() < 500));
     }
 
-    function isValidBestPractice(data) {
-      return hasOnlyAllowedFields(['id', 'title', 'content', 'authorId', 'createdAt']) &&
-             data.title is string && data.content is string && data.authorId is string;
+    function isValidAmbassadorApplication(data) {
+      return data.keys().hasAll(['userId', 'name', 'email', 'university', 'major', 'year', 'motivation', 'status', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.university is string && data.university.size() < 100 &&
+             data.major is string && data.major.size() < 100 &&
+             data.year is string && data.year.size() < 50 &&
+             data.motivation is string && data.motivation.size() < 1000 &&
+             data.status == 'pending' &&
+             isValidDateString(data.createdAt);
     }
 
     // ===============================================================
@@ -89,37 +155,53 @@ service cloud.firestore {
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
+      // PII Protection: Only owner or admin can read full profile
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      
+      // Admin can list users for management
+      allow list: if isAdmin();
+
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'student';
+      
+      allow update: if isAuthenticated() && (
+        // User updating their own profile
+        (isOwner(userId) && 
+         isValidUser(request.resource.data) && 
+         request.resource.data.role == resource.data.role && // Cannot change own role
+         request.resource.data.email == resource.data.email &&
+         request.resource.data.createdAt == resource.data.createdAt) ||
+        // Admin updating roles
+        (isAdmin() && 
+         isValidUser(request.resource.data) &&
+         request.resource.data.email == resource.data.email &&
+         request.resource.data.createdAt == resource.data.createdAt)
+      );
     }
 
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidProduct(request.resource.data);
+      allow write: if isAdmin();
     }
 
     match /orders/{orderId} {
       allow read: if isAuthenticated() && (isOwner(resource.data.userId) || isAdmin());
-      allow create: if isAuthenticated() && isOwner(request.resource.data.userId) && isValidOrder(request.resource.data);
-      allow update: if isAdmin() && isValidOrder(request.resource.data);
-    }
-
-    match /ambassador_applications/{appId} {
-      allow read: if isAuthenticated() && (isOwner(resource.data.userId) || isAdmin());
-      allow create: if isAuthenticated() && isOwner(request.resource.data.userId) && isValidAmbassadorApp(request.resource.data);
-      allow update: if isAdmin() && isValidAmbassadorApp(request.resource.data);
+      allow create: if isAuthenticated() && isValidOrder(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if false;
     }
 
     match /pain_logs/{logId} {
       allow read: if isAuthenticated() && (isOwner(resource.data.userId) || isAdmin() || isOT());
-      allow create: if isAuthenticated() && isOwner(request.resource.data.userId) && isValidPainLog(request.resource.data);
-      allow update: if isAuthenticated() && isOwner(resource.data.userId) && isValidPainLog(request.resource.data);
+      allow create: if isAuthenticated() && isValidPainLog(request.resource.data);
+      allow update: if isOwner(resource.data.userId) && isValidPainLog(request.resource.data);
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
     }
 
-    match /best_practices/{practiceId} {
-      allow read: if true;
-      allow write: if (isAdmin() || isOT()) && isValidBestPractice(request.resource.data);
+    match /ambassador_applications/{applicationId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.userId) || isAdmin());
+      allow create: if isAuthenticated() && isValidAmbassadorApplication(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
   }
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { User, Mail, Shield, Calendar, Camera, Save, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from './FirebaseProvider';
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { cn } from '../lib/utils';
@@ -50,7 +50,7 @@ export const UserProfile: React.FC = () => {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
-      console.error('Profile update failed:', err);
+      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`);
       setError(err.message);
     } finally {
       setLoading(false);

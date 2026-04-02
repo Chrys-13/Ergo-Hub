@@ -6,7 +6,7 @@ import {
   signInWithEmailAndPassword,
   updateProfile 
 } from 'firebase/auth';
-import { auth, db } from '../firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { LogIn, UserPlus, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -55,7 +55,9 @@ export const Login: React.FC = () => {
         await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (error: any) {
-      console.error('Email Authentication failed:', error);
+      if (isSignup && auth.currentUser) {
+        handleFirestoreError(error, OperationType.CREATE, `users/${auth.currentUser.uid}`);
+      }
       setError(error.message);
     } finally {
       setLoading(false);

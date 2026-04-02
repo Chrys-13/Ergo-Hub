@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Crown, Check, Star, Zap, Shield, Headphones, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from './FirebaseProvider';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 
@@ -21,7 +21,7 @@ export const Premium: React.FC = () => {
       });
       alert('Welcome to Ergo-Hub Premium!');
     } catch (error) {
-      console.error('Upgrade failed:', error);
+      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
     } finally {
       setLoading(false);
     }

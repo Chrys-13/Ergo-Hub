@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { FirebaseProvider, useAuth } from './components/FirebaseProvider';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Login } from './components/Login';
 import { Marketplace } from './components/Marketplace';
 import { AmbassadorPortal } from './components/AmbassadorPortal';
@@ -163,10 +164,12 @@ const AppContent = () => {
 
 export default function App() {
   return (
-    <FirebaseProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </FirebaseProvider>
+    <ErrorBoundary>
+      <FirebaseProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </FirebaseProvider>
+    </ErrorBoundary>
   );
 }

@@ -5,7 +5,7 @@ import { cn } from '../lib/utils';
 import { useAuth } from './FirebaseProvider';
 import { sendEmail } from '../lib/email';
 import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Link } from 'react-router-dom';
 
 const products = [
@@ -82,7 +82,7 @@ export const Marketplace: React.FC = () => {
 
       alert('Order placed successfully! A confirmation email has been sent.');
     } catch (error) {
-      console.error('Order failed:', error);
+      handleFirestoreError(error, OperationType.CREATE, 'orders');
     }
   };
 

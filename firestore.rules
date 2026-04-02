@@ -36,9 +36,7 @@ service cloud.firestore {
     // Fields:
     //   - userId: string (required, immutable)
     //   - productId: string (required, immutable)
-    //   - productName: string (required)
     //   - type: string (required) - 'buy', 'rent'
-    //   - price: number (required)
     //   - status: string (required) - 'pending', 'completed'
     //   - createdAt: string (required, immutable)
     //
@@ -48,20 +46,19 @@ service cloud.firestore {
     //   - userId: string (required, immutable)
     //   - preVAS: number (required)
     //   - postVAS: number (required)
-    //   - studyHours: number (required)
-    //   - notes: string (optional)
+    //   - focusEnduranceMinutes: number (required)
+    //   - lumbarAlignment: bool (required)
+    //   - feetFlat: bool (required)
+    //   - neckNeutrality: bool (required)
     //   - createdAt: string (required, immutable)
     //
     // Collection: ambassador_applications
     // Document ID: {applicationId}
     // Fields:
     //   - userId: string (required, immutable)
-    //   - name: string (required)
-    //   - email: string (required)
-    //   - university: string (required)
-    //   - major: string (required)
-    //   - year: string (required)
-    //   - motivation: string (required)
+    //   - dormTerritory: string (required)
+    //   - applicationUrl: string (required)
+    //   - fileName: string (required)
     //   - status: string (required) - 'pending', 'approved', 'rejected'
     //   - createdAt: string (required, immutable)
     //
@@ -117,35 +114,32 @@ service cloud.firestore {
     }
 
     function isValidOrder(data) {
-      return data.keys().hasAll(['userId', 'productId', 'productName', 'type', 'price', 'status', 'createdAt']) &&
+      return data.keys().hasAll(['userId', 'productId', 'type', 'status', 'createdAt']) &&
              data.userId == request.auth.uid &&
              data.productId is string && data.productId.size() < 100 &&
-             data.productName is string && data.productName.size() < 100 &&
              data.type in ['buy', 'rent'] &&
-             data.price is number && data.price >= 0 &&
              data.status in ['pending', 'completed'] &&
              isValidDateString(data.createdAt);
     }
 
     function isValidPainLog(data) {
-      return data.keys().hasAll(['userId', 'preVAS', 'postVAS', 'studyHours', 'createdAt']) &&
+      return data.keys().hasAll(['userId', 'preVAS', 'postVAS', 'focusEnduranceMinutes', 'lumbarAlignment', 'feetFlat', 'neckNeutrality', 'createdAt']) &&
              data.userId == request.auth.uid &&
              data.preVAS is number && data.preVAS >= 0 && data.preVAS <= 10 &&
              data.postVAS is number && data.postVAS >= 0 && data.postVAS <= 10 &&
-             data.studyHours is number && data.studyHours >= 0 && data.studyHours <= 24 &&
-             isValidDateString(data.createdAt) &&
-             (!('notes' in data) || (data.notes is string && data.notes.size() < 500));
+             data.focusEnduranceMinutes is number && data.focusEnduranceMinutes >= 0 &&
+             data.lumbarAlignment is bool &&
+             data.feetFlat is bool &&
+             data.neckNeutrality is bool &&
+             isValidDateString(data.createdAt);
     }
 
     function isValidAmbassadorApplication(data) {
-      return data.keys().hasAll(['userId', 'name', 'email', 'university', 'major', 'year', 'motivation', 'status', 'createdAt']) &&
+      return data.keys().hasAll(['userId', 'dormTerritory', 'applicationUrl', 'fileName', 'status', 'createdAt']) &&
              data.userId == request.auth.uid &&
-             data.name is string && data.name.size() < 100 &&
-             isValidEmail(data.email) &&
-             data.university is string && data.university.size() < 100 &&
-             data.major is string && data.major.size() < 100 &&
-             data.year is string && data.year.size() < 50 &&
-             data.motivation is string && data.motivation.size() < 1000 &&
+             data.dormTerritory is string && data.dormTerritory.size() < 100 &&
+             data.applicationUrl is string && data.applicationUrl.size() < 500 &&
+             data.fileName is string && data.fileName.size() < 200 &&
              data.status == 'pending' &&
              isValidDateString(data.createdAt);
     }

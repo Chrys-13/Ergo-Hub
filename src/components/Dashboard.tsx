@@ -9,6 +9,7 @@ import {
   ChevronRight, Plus, Info, TrendingDown, TrendingUp, Calendar as CalendarIcon, Filter
 } from 'lucide-react';
 import { useAuth } from './FirebaseProvider';
+import { useNotification } from './Notification';
 import { sendEmail } from '../lib/email';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, query, where, onSnapshot, orderBy, limit, QueryConstraint, getDocs, updateDoc, doc } from 'firebase/firestore';
@@ -18,6 +19,7 @@ import { AnimatePresence } from 'motion/react';
 type FilterRange = '7d' | '30d' | 'all' | 'custom';
 
 const AdminPanel: React.FC = () => {
+  const { showNotification } = useNotification();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -67,7 +69,7 @@ const AdminPanel: React.FC = () => {
         );
       }
 
-      alert('Role updated successfully! A notification email has been sent.');
+      showNotification('Role updated successfully! A notification email has been sent.');
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `users/${userId}`);
     }
@@ -123,6 +125,7 @@ const AdminPanel: React.FC = () => {
 
 export const Dashboard: React.FC = () => {
   const { user, profile, isAdmin, isOT } = useAuth();
+  const { showNotification } = useNotification();
   const [logs, setLogs] = useState<any[]>([]);
   const [preVAS, setPreVAS] = useState(5);
   const [postVAS, setPostVAS] = useState(2);
@@ -274,7 +277,7 @@ export const Dashboard: React.FC = () => {
         setLogs([newLog, ...logs]);
       }
       setShowLogForm(false);
-      alert('Log saved!');
+      showNotification('Log saved!');
     } catch (error) {
       console.error('Log submission error:', error);
     }

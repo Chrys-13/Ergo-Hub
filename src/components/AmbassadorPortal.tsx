@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Upload, MapPin, DollarSign, Briefcase, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
 import { useAuth } from './FirebaseProvider';
+import { useNotification } from './Notification';
 import { sendEmail } from '../lib/email';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, query, where, onSnapshot, orderBy } from 'firebase/firestore';
@@ -9,6 +10,7 @@ import { cn } from '../lib/utils';
 
 export const AmbassadorPortal: React.FC = () => {
   const { user, profile, isAmbassador } = useAuth();
+  const { showNotification } = useNotification();
   const [application, setApplication] = useState<any>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [step, setStep] = useState(1);
@@ -121,7 +123,7 @@ export const AmbassadorPortal: React.FC = () => {
       }
 
       setIsApplying(false);
-      alert('Application submitted successfully! A confirmation email has been sent.');
+      showNotification('Application submitted successfully! A confirmation email has been sent.');
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'ambassador_applications');
     }

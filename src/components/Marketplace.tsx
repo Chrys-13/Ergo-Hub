@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Check, Info, ShoppingCart, Building2, Crown, Lock } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from './FirebaseProvider';
+import { useNotification } from './Notification';
 import { sendEmail } from '../lib/email';
 import { addDoc, collection } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
@@ -34,13 +35,14 @@ const products = [
 
 export const Marketplace: React.FC = () => {
   const { user, isPremium } = useAuth();
+  const { showNotification } = useNotification();
   const [showBulk, setShowBulk] = useState(false);
 
   const handleOrder = async (product: any, type: 'buy' | 'rent' = 'buy') => {
     if (!user) return;
     
     if (product.premiumOnly && !isPremium) {
-      alert('This product is exclusive to Premium members.');
+      showNotification('This product is exclusive to Premium members.', 'error');
       return;
     }
 
@@ -84,7 +86,7 @@ export const Marketplace: React.FC = () => {
         );
       }
 
-      alert('Order placed successfully! A confirmation email has been sent.');
+      showNotification('Order placed successfully! A confirmation email has been sent.');
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'orders');
     }
@@ -286,7 +288,7 @@ export const Marketplace: React.FC = () => {
                 <X size={24} />
               </button>
             </div>
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); setShowBulk(false); alert('Inquiry sent!'); }}>
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); setShowBulk(false); showNotification('Inquiry sent!'); }}>
               <div>
                 <label className="block text-xs font-serif uppercase tracking-widest text-primary/60 mb-2">Institution Name</label>
                 <input type="text" className="w-full bg-bg border-none rounded-xl px-4 py-3 font-serif" placeholder="e.g. Stanford University" required />

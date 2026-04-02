@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { FirebaseProvider, useAuth } from './components/FirebaseProvider';
+import { NotificationProvider } from './components/Notification';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Login } from './components/Login';
 import { Marketplace } from './components/Marketplace';
@@ -168,11 +169,13 @@ const AppContent = () => {
 export default function App() {
   return (
     <ErrorBoundary>
-      <FirebaseProvider>
-        <Router>
-          <AppContent />
-        </Router>
-      </FirebaseProvider>
+      <NotificationProvider>
+        <FirebaseProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </FirebaseProvider>
+      </NotificationProvider>
     </ErrorBoundary>
   );
 }

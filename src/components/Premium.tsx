@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Crown, Check, Star, Zap, Shield, Headphones, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from './FirebaseProvider';
+import { useNotification } from './Notification';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 
 export const Premium: React.FC = () => {
   const { user, isPremium } = useAuth();
+  const { showNotification } = useNotification();
   const [loading, setLoading] = useState(false);
 
   const handleUpgrade = async () => {
@@ -23,7 +25,7 @@ export const Premium: React.FC = () => {
       } catch (e) {
         console.warn('Firestore upgrade failed, simulating success for dummy mode:', e);
       }
-      alert('Welcome to Ergo-Hub Premium!');
+      showNotification('Welcome to Ergo-Hub Premium!');
     } catch (error) {
       console.error('Upgrade error:', error);
     } finally {

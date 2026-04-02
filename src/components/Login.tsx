@@ -8,10 +8,12 @@ import {
 } from 'firebase/auth';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { useAuth } from './FirebaseProvider';
 import { LogIn, UserPlus, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const Login: React.FC = () => {
+  const { login } = useAuth();
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,12 +22,10 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handleGoogleAuth = async () => {
-    const provider = new GoogleAuthProvider();
     setError(null);
     try {
-      await signInWithPopup(auth, provider);
+      login();
     } catch (error: any) {
-      console.error('Google Authentication failed:', error);
       setError(error.message);
     }
   };
@@ -36,28 +36,8 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      if (isSignup) {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        
-        // Update profile with name
-        await updateProfile(user, { displayName: name });
-
-        // Create initial user document in Firestore
-        await setDoc(doc(db, 'users', user.uid), {
-          uid: user.uid,
-          email: user.email,
-          displayName: name,
-          role: 'student',
-          createdAt: new Date().toISOString(),
-        });
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-      }
+      login();
     } catch (error: any) {
-      if (isSignup && auth.currentUser) {
-        handleFirestoreError(error, OperationType.CREATE, `users/${auth.currentUser.uid}`);
-      }
       setError(error.message);
     } finally {
       setLoading(false);

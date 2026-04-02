@@ -13,6 +13,8 @@ interface AuthContextType {
   isAmbassador: boolean;
   isStudent: boolean;
   isPremium: boolean;
+  logout: () => void;
+  login: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -25,88 +27,69 @@ const AuthContext = createContext<AuthContextType>({
   isAmbassador: false,
   isStudent: false,
   isPremium: false,
+  logout: () => {},
+  login: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [user, setUser] = useState<any>({
+    uid: 'dummy-user-id',
+    email: 'patient@ergo-hub.com',
+    displayName: 'Patient User',
+    emailVerified: true
+  });
+  const [profile, setProfile] = useState<any>({
+    uid: 'dummy-user-id',
+    email: 'patient@ergo-hub.com',
+    displayName: 'Patient User',
+    role: 'admin',
+    isPremium: true,
+    createdAt: new Date().toISOString(),
+  });
+  const [loading, setLoading] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(true);
 
-  const isAdmin = profile?.role === 'admin' || user?.email === 'chrysolite77ci@gmail.com';
+  const isAdmin = profile?.role === 'admin' || user?.email === 'patient@ergo-hub.com';
   const isOT = profile?.role === 'ot';
   const isAmbassador = profile?.role === 'ambassador';
   const isStudent = profile?.role === 'student';
   const isPremium = profile?.isPremium === true;
 
+  const logout = () => {
+    setUser(null);
+    setProfile(null);
+  };
+
+  const login = () => {
+    setUser({
+      uid: 'dummy-user-id',
+      email: 'patient@ergo-hub.com',
+      displayName: 'Patient User',
+      emailVerified: true
+    });
+    setProfile({
+      uid: 'dummy-user-id',
+      email: 'patient@ergo-hub.com',
+      displayName: 'Patient User',
+      role: 'admin',
+      isPremium: true,
+      createdAt: new Date().toISOString(),
+    });
+  };
+
   useEffect(() => {
-    // Connection test
+    // We are in dummy mode, so we don't need to listen to real auth changes
+    // But we keep the connection test for debugging if needed
     const testConnection = async () => {
       try {
         await getDocFromServer(doc(db, '_connection_test_', 'ping'));
       } catch (error) {
-        if (error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Please check your Firebase configuration. The client is offline.");
-        }
+        // Silently fail connection test in dummy mode
       }
     };
     testConnection();
-
-    let unsubscribeProfile: (() => void) | null = null;
-
-    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      
-      if (unsubscribeProfile) {
-        unsubscribeProfile();
-        unsubscribeProfile = null;
-      }
-
-      if (currentUser) {
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        
-        // Initial check and creation if missing
-        try {
-          const userDoc = await getDoc(userDocRef);
-          if (!userDoc.exists()) {
-            const newProfile = {
-              uid: currentUser.uid,
-              email: currentUser.email,
-              displayName: currentUser.displayName,
-              role: 'student',
-              createdAt: new Date().toISOString(),
-            };
-            await setDoc(userDocRef, newProfile);
-          }
-        } catch (error) {
-          handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
-        }
-
-        // Listen for real-time updates
-        unsubscribeProfile = onSnapshot(userDocRef, (doc) => {
-          if (doc.exists()) {
-            setProfile(doc.data());
-          }
-          setLoading(false);
-          setIsAuthReady(true);
-        }, (error) => {
-          handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
-          setLoading(false);
-          setIsAuthReady(true);
-        });
-      } else {
-        setProfile(null);
-        setLoading(false);
-        setIsAuthReady(true);
-      }
-    });
-
-    return () => {
-      unsubscribeAuth();
-      if (unsubscribeProfile) unsubscribeProfile();
-    };
   }, []);
 
   return (
@@ -119,7 +102,9 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       isOT,
       isAmbassador,
       isStudent,
-      isPremium
+      isPremium,
+      logout,
+      login
     }}>
       {children}
     </AuthContext.Provider>

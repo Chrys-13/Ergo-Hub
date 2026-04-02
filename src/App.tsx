@@ -15,7 +15,7 @@ import { signOut } from 'firebase/auth';
 import { cn } from './lib/utils';
 
 const Navigation = () => {
-  const { profile } = useAuth();
+  const { profile, logout } = useAuth();
   const location = useLocation();
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -27,7 +27,10 @@ const Navigation = () => {
     { path: '/premium', label: 'Premium', icon: Crown },
   ];
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = () => {
+    logout();
+    auth.signOut(); // Still call it just in case, though it won't affect dummy state
+  };
 
   return (
     <nav className="bg-white border-b border-primary/10 sticky top-0 z-50">
